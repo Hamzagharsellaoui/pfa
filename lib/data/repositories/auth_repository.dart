@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 import '../models/base_response_model.dart';
 
 class AuthRepository {
-  final url = Uri.parse('http://192.168.1.25:8081/Auth/login');
+  final url = Uri.parse('http://192.168.1.25'
+      ':8081/Auth/login');
   final http.Client client;
 
   AuthRepository({http.Client? client}) : client = client ?? http.Client();

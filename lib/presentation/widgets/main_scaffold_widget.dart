@@ -6,18 +6,19 @@ import '../screens/contacts_chat_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/search_screen.dart';
+import '../widgets/navbar_widget.dart'; // Add this import
 
 class MainScaffold extends StatelessWidget {
   final List<Widget> _screens;
 
   MainScaffold({super.key})
-    : _screens = [
-        const HomeScreen(),
-        SearchScreen(),
-        const CalendarScreen(),
-        ContactsChatScreen(),
-        const ProfileScreen(),
-      ];
+      : _screens = [
+    HomeScreen(),
+    SearchScreen(),
+    const CalendarScreen(),
+    ContactsChatScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -25,21 +26,11 @@ class MainScaffold extends StatelessWidget {
       builder: (context, selectedIndex) {
         return Scaffold(
           body: _screens[selectedIndex],
-          bottomNavigationBar: NavigationBar(
+          bottomNavigationBar: NavbarWidget(
             selectedIndex: selectedIndex,
             onDestinationSelected: (index) {
               context.read<NavigationCubit>().updateIndex(index);
             },
-            destinations: const [
-              NavigationDestination(icon: Icon(Icons.home), label: ''),
-              NavigationDestination(icon: Icon(Icons.search), label: ''),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_month_outlined),
-                label: '',
-              ),
-              NavigationDestination(icon: Icon(Icons.message), label: ''),
-              NavigationDestination(icon: Icon(Icons.person), label: ''),
-            ],
           ),
         );
       },

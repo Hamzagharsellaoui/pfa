@@ -11,6 +11,7 @@ import 'data/repositories/auth_repository.dart';
 import 'logic/auth/auth_bloc.dart';
 import 'logic/auth/auth_event.dart';
 import 'logic/auth/auth_state.dart';
+import 'logic/blocmessages/chat_screen_bloc.dart';
 import 'navigation/NavigationCubit.dart';
 import 'presentation/screens/login_screen.dart';
 
@@ -25,10 +26,12 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => AuthBloc(AuthRepository())..add(AppStarted())),
         BlocProvider(create: (_) => NavigationCubit()),
+        RepositoryProvider(create: (_) => ChatRepository()),
+        RepositoryProvider(create: (_) => WebSocketRepository()),
         BlocProvider(
-          create: (_) => ChatBloc(
-            chatRepository: ChatRepository(),
-            webSocketService: WebSocketRepository(),
+          create: (context) => ChatBloc(
+            chatRepository: RepositoryProvider.of<ChatRepository>(context),
+            webSocketRepository: RepositoryProvider.of<WebSocketRepository>(context),
           )..add(LoadChatsEvent()),
         ),
       ],
@@ -38,6 +41,7 @@ class MyApp extends StatelessWidget {
         onGenerateRoute: AppRoutes.generateRoute,
       ),
     );
+
   }
 }
 
@@ -58,11 +62,17 @@ class AppRoutes {
       case chat:
         final args = settings.arguments as ChatScreenArguments;
         return MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            chatId: args.chatId,
-            currentUserId: args.currentUserId,
-            receiverId: args.receiverId,
-            receiverName: args.receiverName,
+          builder: (context) => BlocProvider<ChatScreenBloc>(
+            create: (_) => ChatScreenBloc(
+              chatRepository: RepositoryProvider.of<ChatRepository>(context),
+              webSocketRepository: RepositoryProvider.of<WebSocketRepository>(context), chatId: args.chatId, currentUserId: args.currentUserId,
+            ),
+            child: ChatScreen(
+              chatId: args.chatId,
+              currentUserId: args.currentUserId,
+              receiverId: args.receiverId,
+              receiverName: args.receiverName,
+            ),
           ),
         );
       default:

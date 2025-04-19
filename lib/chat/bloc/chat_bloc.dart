@@ -8,7 +8,7 @@ import 'package:pfa_flutter/chat/websocket/web_socket_repository.dart';
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final ChatRepository chatRepository;
 
-  ChatBloc({required this.chatRepository, required WebSocketRepository webSocketService}) : super(ChatInitial()) {
+  ChatBloc({required this.chatRepository, required WebSocketRepository webSocketRepository,}) : super(ChatInitial()) {
     on<LoadChatsEvent>(_onLoadChats);
   }
 

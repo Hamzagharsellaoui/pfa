@@ -3,6 +3,7 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:pfa_flutter/chat/websocket/web_socket_repository.dart';
 
 import '../../data/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -50,6 +51,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _handleLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     await deleteToken();
     emit(AuthInitial());
+    WebSocketRepository().disconnect();
   }
 
   static Future<void> saveToken(String token) async {

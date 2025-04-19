@@ -20,14 +20,6 @@ class LoadMessagesEvent extends ChatEvent {
   List<Object?> get props => [chatId];
 }
 
-// class SendMessageEvent extends ChatEvent {
-//   final Message message;
-//
-//   SendMessageEvent(this.message);
-//
-//   @override
-//   List<Object?> get props => [message];
-// }
 
 class ReceiveMessageEvent extends ChatEvent {
   final Message message;

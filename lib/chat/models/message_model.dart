@@ -5,6 +5,7 @@ class Message {
   final String senderId;
   final String receiverId;
   final MessageType messageType;
+  final MessageState messageState;
   final DateTime createdAt;
 
   Message({
@@ -12,19 +13,25 @@ class Message {
     required this.content,
     required this.senderId,
     required this.createdAt,
+    this.messageState = MessageState.sent, // Default value
     required this.receiverId, required this.messageType
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      chatId: json['chatId'],
-      content: json['content'],
-      senderId: json['senderId'],
-      messageType: json['messageType'],
-      receiverId: json['receiverId'],
-      createdAt: DateTime.parse(json['createdAt']),
+      content: json['content'] ?? '',
+      senderId: json['senderId'] ?? '',
+      receiverId: json['receiverId'] ?? '',
+      messageType: MessageType.values.firstWhere(
+            (e) => e.toString().split('.').last == json['messageType'],
+        orElse: () => MessageType.TEXT,
+      ),
+      chatId: json['chatId'] ?? '',
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
+
+
 
   Map<String, dynamic> toJson() {
     return {

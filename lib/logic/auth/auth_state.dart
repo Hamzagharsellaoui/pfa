@@ -12,12 +12,14 @@ class AuthLoading extends AuthState {}
 class Authenticated extends AuthState {
   final String token;
   final Map<String, dynamic> user;
+  final String role;
 
-  Authenticated({required this.token, required this.user});
+  Authenticated({required this.token, required this.user, required this.role});
 
   @override
   List<Object?> get props => [token, user];
 }
+class AuthSuccess extends AuthState{}
 
 class AuthError extends AuthState {
   final String message;

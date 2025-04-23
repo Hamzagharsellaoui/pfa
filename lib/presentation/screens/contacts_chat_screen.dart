@@ -25,7 +25,7 @@ class _ContactsChatScreenState extends State<ContactsChatScreen> {
     super.initState();
     final authState = AuthBloc.of(context).state;
     if (authState is Authenticated) {
-      currentUserId = AuthBloc.getIdFromeToken();
+      currentUserId = AuthBloc.getIdFromToken();
       log('Current User ID: $currentUserId');
       context.read<ChatBloc>().add(LoadChatsEvent());
     }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pfa_flutter/chat/models/message_model.dart';
 import 'package:pfa_flutter/logic/blocmessages/chat_screen_bloc.dart';
 import 'package:pfa_flutter/logic/blocmessages/chat_screen_state.dart';
+import 'package:pfa_flutter/presentation/screens/video_call_screen.dart';
 import '../../chat/repository/chat_repository.dart';
 import '../../chat/websocket/web_socket_repository.dart';
 import '../../logic/blocmessages/MessageBubble.dart';
@@ -38,8 +39,6 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
-
-
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -60,12 +59,13 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ChatScreenBloc(
-        chatRepository: RepositoryProvider.of<ChatRepository>(context),
-        webSocketRepository: _webSocketRepo,
-        chatId: widget.chatId,
-        currentUserId: widget.currentUserId,
-      )..add(LoadMessagesEvent(widget.chatId)),
+      create:
+          (context) => ChatScreenBloc(
+            chatRepository: RepositoryProvider.of<ChatRepository>(context),
+            webSocketRepository: _webSocketRepo,
+            chatId: widget.chatId,
+            currentUserId: widget.currentUserId,
+          )..add(LoadMessagesEvent(widget.chatId)),
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.deepPurple,
@@ -74,7 +74,9 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               const CircleAvatar(
                 radius: 15,
-                backgroundImage: AssetImage("assets/images/frikh-3379374-small.gif"),
+                backgroundImage: AssetImage(
+                  "assets/images/frikh-3379374-small.gif",
+                ),
               ),
               const SizedBox(width: 10),
               Text(
@@ -90,11 +92,11 @@ class _ChatScreenState extends State<ChatScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.call, color: Colors.white),
-              onPressed: () {},
-            ),
+              onPressed:(){}),
             IconButton(
               icon: const Icon(Icons.videocam, color: Colors.white),
-              onPressed: () {},
+              onPressed: () {}
+                // => _initiateVideoCall(context),
             ),
           ],
         ),
@@ -127,9 +129,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     );
                   }
 
-                  // if (state is MessageErrorState) {
-                  //   return Center(child: Text(state.message));
-                  // }
+                  if (state is ChatErrorState) {
+                    return Center(child: Text(state.message));
+                  }
 
                   return const Center(child: Text('Start a conversation!'));
                 },
@@ -184,4 +186,31 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.clear();
     }
   }
+  // void _initiateVideoCall(BuildContext context) {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => VideoCallScreen(
+  //         currentUserId: widget.currentUserId,
+  //         receiverId: widget.receiverId,
+  //         receiverName: widget.receiverName,
+  //         isCaller: true,
+  //       ),
+  //     ),
+  //   );
+  // }
+  // void _initiateVoiceCall(BuildContext context) {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => VideoCallScreen(
+  //         currentUserId: widget.currentUserId,
+  //         receiverId: widget.receiverId,
+  //         receiverName: widget.receiverName,
+  //         isCaller: true,
+  //       ),
+  //     ),
+  //   );
+  // }
 }
+

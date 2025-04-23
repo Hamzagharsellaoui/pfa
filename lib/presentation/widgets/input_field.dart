@@ -17,7 +17,7 @@ class InputField extends StatelessWidget {
     this.obscureText = false,
     this.prefixIcon,
     this.suffixIcon,
-    this.counterText, required Null Function(dynamic value) onChanged, required TextInputType keyboardType,
+    this.counterText, required Null Function(dynamic value) onChanged, required TextInputType keyboardType, required String? Function(dynamic value) validator,
   });
 
   @override

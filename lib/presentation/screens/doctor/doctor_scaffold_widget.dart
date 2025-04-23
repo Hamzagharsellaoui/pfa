@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../navigation/NavigationCubit.dart';
-import '../screens/calendar_screen.dart';
-import '../screens/contacts_chat_screen.dart';
-import '../screens/home_screen.dart';
-import '../screens/profile_screen.dart';
-import '../screens/search_screen.dart';
-import '../widgets/navbar_widget.dart'; // Add this import
+import '../../../navigation/NavigationCubit.dart';
+import '../contacts_chat_screen.dart';
+import 'doctor_calendar_screen.dart';
+import 'doctor_home_screen.dart';
+import 'doctor_search_screen.dart';
+import '../profile_screen.dart';
+import '../../widgets/navbar_widget.dart'; // Add this import
 
-class PatientMainScaffold extends StatelessWidget {
+class DoctorMainScaffold extends StatelessWidget {
   final List<Widget> _screens;
 
-  PatientMainScaffold({super.key})
+  DoctorMainScaffold({super.key})
       : _screens = [
-    HomeScreen(),
-    SearchScreen(),
-    const CalendarScreen(),
+    DoctorHomeScreen(),
+    DoctorSearchScreen(),
+    DoctorCalendarScreen(),
     ContactsChatScreen(),
-    const ProfileScreen(),
+    ProfileScreen(),
   ];
 
   @override

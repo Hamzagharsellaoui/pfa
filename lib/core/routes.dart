@@ -5,13 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/repositories/auth_repository.dart';
 import '../logic/auth/auth_bloc.dart';
 import '../logic/auth/auth_state.dart';
+import '../navigation/NavigationCubit.dart';
 import '../presentation/screens/calendar_screen.dart';
 import '../presentation/screens/chat_screen.dart';
 import '../presentation/screens/contacts_chat_screen.dart';
 import '../presentation/screens/login_screen.dart';
 
 import '../presentation/screens/profile_screen.dart';
+import '../presentation/screens/register_screen.dart';
 import '../presentation/screens/search_screen.dart';
+import '../presentation/screens/doctor/doctor_scaffold_widget.dart';
 import '../presentation/widgets/main_scaffold_widget.dart';
 
 // main.dart
@@ -38,11 +41,13 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        log('[AuthWrapper] Current state: ${state.runtimeType}');
-
         if (state is Authenticated) {
-          log('[AuthWrapper] Navigating to Home');
-          return MainScaffold();
+          return BlocProvider.value(
+            value: BlocProvider.of<NavigationCubit>(context),
+            child: state.role == 'DOCTOR'
+                ? DoctorMainScaffold()
+                : PatientMainScaffold(),
+          );
         }
         if (state is AuthLoading) return _LoadingScreen();
         return LoginScreen();
@@ -76,11 +81,14 @@ class AppRoutes {
   static const String initial = '/';
   static const String home = '/home';
   static const String login = '/login';
+  static const String register = '/register';
   static const String chat = '/chat';
   static const String profile = '/profile';
   static const String calendar = '/calendar';
   static const String search = '/search';
   static const String contacts = '/contacts';
+  static const String doctorPrescription = '/doctor/prescription';
+  static const String doctorRecords = '/doctor/records';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -91,8 +99,18 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => LoginScreen());
 
       case home:
-        return MaterialPageRoute(builder: (_) => MainScaffold());
-
+        final role = settings.arguments as String? ?? 'PATIENT';
+        return MaterialPageRoute(
+          builder: (_) => role == 'DOCTOR'
+              ? DoctorMainScaffold()
+              : PatientMainScaffold(),
+        );
+      case doctorPrescription:
+        // return MaterialPageRoute(builder: (_) => PrescriptionScreen());
+      case doctorRecords:
+        // return MaterialPageRoute(builder: (_) => MedicalRecordsScreen());
+      case register:
+        return MaterialPageRoute(builder: (_) => RegisterScreen());
       case profile:
         return MaterialPageRoute(builder: (_) => ProfileScreen());
 

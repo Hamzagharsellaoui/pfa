@@ -7,12 +7,11 @@ import '../models/ChatModel.dart';
 import '../models/message_model.dart';
 
 class ChatRepository {
-  final baseUrl = 'http://192.168.1.25:8081/api/v1/chats';
+  final baseUrl = 'http://192.168.0.119:8081/api/v1/chats';
 
   Future<List<ChatModel>> getUserChats() async {
     final token = await AuthBloc.getToken();
     log("Sending request to: $baseUrl");
-    log("Authorization token: ${token ?? 'NULL TOKEN'}");
 
     try {
       final response = await http.get(
@@ -23,17 +22,9 @@ class ChatRepository {
         },
 
       ).timeout(const Duration(seconds: 10));
-
-      log("<<< Response Received >>>");
-      log("Status Code: ${response.statusCode}");
-      log("Headers: ${response.headers}");
-      log("Raw Response Body: ${response.body}");
-      log("<<< End Response >>>");
-
-      if (response.statusCode == 200) {
+            if (response.statusCode == 200) {
         try {
           final body = jsonDecode(response.body);
-          log("Decoded JSON: $body"); // Log decoded JSON
 
           if (body['data'] is List) {
             final List chats = body['data'];
@@ -71,7 +62,7 @@ class ChatRepository {
   Future<List<Message>> fetchMessages(String chatId) async {
     final token = await AuthBloc.getToken();
     final response = await http.get(
-      Uri.parse('http://192.168.1.25:8081/api/v1/messages/chat/$chatId'),
+      Uri.parse('http://192.168.0.119:8081/api/v1/messages/chat/$chatId'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -84,4 +75,22 @@ class ChatRepository {
       throw Exception('Failed to load messages');
     }
   }
+
+  Future<List<String>> getParticipants(String chatId) async {
+    final chats = await getUserChats();
+
+    final chat = chats.firstWhere(
+          (chat) => chat.id == chatId,
+      orElse: () => throw Exception("Chat not found"),
+    );
+
+    final participants = <String>{};
+
+    if (chat.senderId != null) participants.add(chat.senderId!);
+    if (chat.recipientId != null) participants.add(chat.recipientId!);
+
+    return participants.toList();
+  }
+
+
 }

@@ -24,16 +24,15 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     on<SendMessageEvent>(_onSendMessage);
     on<NewIncomingMessageEvent>(_onNewIncomingMessage);
     webSocketRepository.messageStream.listen((message) {
-      add(NewIncomingMessageEvent(message)); // Trigger a BLoC event
+      add(NewIncomingMessageEvent(message));
     });
-    _initializeWebSocketOnce(); // ✅ Keep connection persistent
+    _initializeWebSocketOnce();
 
     add(LoadMessagesEvent(chatId));
   }
 
   void _initializeWebSocketOnce() {
     if (_isWebSocketInitialized) return;
-
     _isWebSocketInitialized = true;
 
     _messageSubscription = webSocketRepository.messageStream.listen((message) {
@@ -71,10 +70,7 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     });
   }
 
-  Future<void> _onLoadMessages(
-      LoadMessagesEvent event,
-      Emitter<ChatScreenState> emit,
-      ) async {
+  Future<void> _onLoadMessages(LoadMessagesEvent event, Emitter<ChatScreenState> emit,) async {
     emit(MessagesLoadingState());
     try {
       final messages = await chatRepository.fetchMessages(chatId);
@@ -84,9 +80,14 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     }
   }
 
-  void _onSendMessage(SendMessageEvent event, Emitter<ChatScreenState> emit) {
+  Future<void> _onSendMessage(SendMessageEvent event, Emitter<ChatScreenState> emit) async {
     try {
-      webSocketRepository.sendMessage(event.message);
+      webSocketRepository.sendMessage(
+        content: event.message.content,
+        chatId: chatId,
+        senderId: currentUserId,
+        receiverId: await chatRepository.getParticipants(event.message.chatId).then((value) => value[0]),
+      );
 
       if (state is MessagesLoadedState) {
         final currentState = state as MessagesLoadedState;
@@ -97,22 +98,28 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
       emit(MessageSendFailedState('Failed to send message: ${e.toString()}'));
     }
   }
+  void _onNewIncomingMessage(NewIncomingMessageEvent event, Emitter<ChatScreenState> emit) {
+    print('🔄 BLoC received new message event: '
+        'ID: ${event.message.chatId} '
+        'Content: ${event.message.content}');
 
-  void _onNewIncomingMessage(
-      NewIncomingMessageEvent event,
-      Emitter<ChatScreenState> emit,
-      ) {
     if (state is MessagesLoadedState) {
       final currentState = state as MessagesLoadedState;
+      print('📄 Current message count: ${currentState.messages.length}');
+
       final updatedMessages = [...currentState.messages, event.message];
+      print('🆕 New message count: ${updatedMessages.length}');
+
       emit(MessagesLoadedState(updatedMessages));
+      print('✅ State updated with new message');
+    } else {
+      print('⚠️ Received message in invalid state: ${state.runtimeType}');
     }
   }
 
   @override
   Future<void> close() async {
     await _messageSubscription?.cancel();
-    // ✅ Don't disconnect WebSocket here; let it persist until logout
     return super.close();
   }
 }

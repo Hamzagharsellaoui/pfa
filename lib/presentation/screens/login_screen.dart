@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/routes.dart';
 import '../../logic/auth/auth_bloc.dart';
 import '../../logic/auth/auth_event.dart';
 import '../../logic/auth/auth_state.dart';
 import '../widgets/input_field.dart';
-import '../widgets/custom_button.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -25,63 +26,101 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background color for the login screen
+      backgroundColor: Color(0xFFF4F4F7), // Matching your home screen background
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
             );
           }
         },
-        child: _buildUI(context),
-      ),
-    );
-  }
-
-  Widget _buildUI(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32.0), // Added larger padding
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.medical_information,
-            size: 80,
-            color: Colors.purple,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Welcome Back!',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.purple,
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
+            ),
+            child: Column(
+              children: [
+                // Header Section (matches your app bar style)
+                Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF7C3AED), // Your purple color
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(16),
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.medical_services,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Welcome Back',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Form Section
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            InputField(
+                              controller: _emailController,
+                              hintText: 'Email',
+                              keyboardType: TextInputType.emailAddress,
+                              prefixIcon: Icon(Icons.email, color: Color(0xFF7C3AED)),
+                              validator: (value) => value!.isEmpty ? 'Please enter email' : null, onChanged: (value) {  },
+                            ),
+                            SizedBox(height: 20),
+                            InputField(
+                              controller: _passwordController,
+                              hintText: 'Password',
+                              obscureText: true,
+                              keyboardType: TextInputType.text,
+                              prefixIcon: Icon(Icons.lock, color: Color(0xFF7C3AED)),
+                              validator: (value) => value!.isEmpty ? 'Please enter password' : null, onChanged: (value) {  },
+                            ),
+                            SizedBox(height: 30),
+                            _buildLoginButton(context),
+                            SizedBox(height: 20),
+                            _buildRegisterButton(context),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 30),
-          InputField(
-            controller: _emailController,
-            hintText: 'Email',
-            keyboardType: TextInputType.emailAddress,
-            obscureText: false,
-            prefixIcon: Icon(Icons.email,color: Colors.purple,), onChanged: (value) {  },
-          ),
-          const SizedBox(height: 20),
-          InputField(
-            controller: _passwordController,
-            hintText: 'Password',
-            keyboardType: TextInputType.text,
-            obscureText: true,
-            prefixIcon: Icon(Icons.lock,color: Colors.purple,), onChanged: (value) {  },
-
-          ),
-          const SizedBox(height: 30),
-          _buildLoginButton(context),
-          const SizedBox(height: 20),
-          _buildRegisterButton(context),
-        ],
+        ),
       ),
     );
   }
@@ -90,32 +129,38 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthLoading) {
-          return CircularProgressIndicator();
+          return CircularProgressIndicator(color: Color(0xFF7C3AED));
         }
-        return ElevatedButton(
-          onPressed: () {
-            final email = _emailController.text.trim();
-            final password = _passwordController.text.trim();
-            if (email.isEmpty || password.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Please fill all fields')),
-              );
-              return;
-            }
-            context.read<AuthBloc>().add(LoginEvent(email, password));
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                context.read<AuthBloc>().add(
+                  LoginEvent(
+                    _emailController.text.trim(),
+                    _passwordController.text.trim(),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
             ),
-            foregroundColor: Colors.purple,
-            textStyle: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+            child: Text(
+              'LOGIN',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          child: Text('LOGIN'),
         );
       },
     );
@@ -123,15 +168,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildRegisterButton(BuildContext context) {
     return TextButton(
-      onPressed: () {
-        Navigator.pushNamed(context, '/register'); // Navigate to register screen
-      },
-      child: Text(
-        'Don’t have an account? Register',
-        style: TextStyle(
-          color: Colors.purple,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
+      onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
+      child: RichText(
+        text: TextSpan(
+          text: "Don't have an account? ",
+          style: TextStyle(color: Colors.grey[600]),
+          children: [
+            TextSpan(
+              text: 'Register',
+              style: TextStyle(
+                color: Color(0xFF7C3AED),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

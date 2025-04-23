@@ -1,10 +1,5 @@
-abstract class AuthEvent {}
+import '../auth/auth_event.dart';
 
-class LoginEvent extends AuthEvent {
-  final String email;
-  final String password;
-  LoginEvent(this.email, this.password);
-}
 class RegisterEvent extends AuthEvent {
   final String firstName;
   final String lastName;
@@ -19,6 +14,7 @@ class RegisterEvent extends AuthEvent {
     required this.password,
     required this.role,
   });
+
+  @override
+  List<Object> get props => [firstName, lastName, email, password, role];
 }
-class LogoutEvent extends AuthEvent {}
-class AppStarted extends AuthEvent {}

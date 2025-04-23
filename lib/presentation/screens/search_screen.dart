@@ -24,7 +24,7 @@ class SearchScreen extends StatelessWidget {
         suffixIcon: IconButton(
           icon: Icon(Icons.tune, color: Colors.grey),
           onPressed: () {},
-        ), onChanged: (value) {  }, keyboardType: TextInputType.text,
+        ), onChanged: (value) {  }, keyboardType: TextInputType.text, validator: (value) {  },
       ),
     );
   }

@@ -1,18 +1,22 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pfa_flutter/presentation/widgets/card_widget.dart';
+import '../../data/tooth_decay_detector.dart';
 import '../../logic/auth/auth_bloc.dart';
 import '../../logic/auth/auth_event.dart';
 
 class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final currentDate = DateFormat.yMMMEd().format(DateTime.now());
 
-    const mainColor = Color(0xFF7C3AED); // Soft purple
+    const mainColor = Color(0xFF7C3AED);
     const backgroundColor = Color(0xFFF4F4F7);
 
     return Scaffold(
@@ -150,6 +154,156 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: mainColor,
+        child: const Icon(Icons.camera, color: Colors.white),
+        onPressed: () => _showDiagnosisDialog(context),
+      ),
+    );
+  }
+}
+
+void _showDiagnosisDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.medical_services,
+                  color: Color(0xFF7C3AED),
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "Tooth Decay Check",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Upload a clear photo of your tooth for AI-powered preliminary analysis.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.upload, size: 22),
+                label: const Text(
+                  "Upload Photo",
+                  style: TextStyle(fontSize: 16),
+                ),
+                onPressed: () => _pickAndAnalyzeImage(context),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 15,
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _pickAndAnalyzeImage(BuildContext context) async {
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+  if (pickedFile == null) return;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Dialog(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF7C3AED)),
+            const SizedBox(height: 20),
+            Text(
+              "Analyzing your tooth...",
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  try {
+    final result = await GeminiService.analyzeToothImage(File(pickedFile.path));
+    Navigator.pop(context); // Close loading dialog
+
+    if (result == null) {
+      throw Exception("Failed to analyze image");
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Diagnosis Result"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Decay Percentage: ${result['decay_percentage'] ?? 'N/A'}"),
+            const SizedBox(height: 8),
+            Text("Recommendation: ${result['see_dentist'] ?? 'N/A'}"),
+            const SizedBox(height: 8),
+            Text("Explanation: ${result['explanation'] ?? 'No explanation'}"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  } catch (e) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString().replaceAll('Exception: ', '')}")),
     );
   }
 }

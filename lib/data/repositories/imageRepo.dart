@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:pfa_flutter/logic/auth/auth_bloc.dart';
+
+import '../../logic/auth/auth_bloc.dart';
+
 
 class Imagerepo {
   static final Imagerepo _instance = Imagerepo._internal();

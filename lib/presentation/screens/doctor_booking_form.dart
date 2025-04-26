@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../widgets/gender_selector.dart';  // Assuming this widget exists
+import '../widgets/card_widget.dart';
+import '../widgets/gender_selector.dart'; // Assuming this widget exists
 
 class DoctorBookingForm extends StatefulWidget {
-  const DoctorBookingForm({super.key});
+  final Function(DateTime)? onDateSelected; // Callback for date selection
+  final Function(TimeOfDay)? onTimeSelected; // Callback for time selection
+
+  const DoctorBookingForm({
+    super.key,
+    this.onDateSelected,
+    this.onTimeSelected,
+  });
 
   @override
   _DoctorBookingFormState createState() => _DoctorBookingFormState();
@@ -12,6 +20,7 @@ class DoctorBookingForm extends StatefulWidget {
 class _DoctorBookingFormState extends State<DoctorBookingForm> {
   double height = 150, weight = 70;
   DateTime? selectedDate;
+  TimeOfDay? selectedTime;
   final TextEditingController complaintController = TextEditingController();
 
   void _pickDate() async {
@@ -19,48 +28,44 @@ class _DoctorBookingFormState extends State<DoctorBookingForm> {
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      lastDate: DateTime(2100),
     );
     if (picked != null && picked != selectedDate) {
       setState(() => selectedDate = picked);
+      widget.onDateSelected?.call(picked); // Notify parent of the selected date
     }
   }
 
-  void _goToNextStep() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => NextStepPage()), // Replace with actual next step page
+  void _pickTime() async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: selectedTime ?? TimeOfDay.now(),
     );
+    if (pickedTime != null && pickedTime != selectedTime) {
+      setState(() => selectedTime = pickedTime);
+      widget.onTimeSelected?.call(pickedTime); // Notify parent of the selected time
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Your existing build method remains unchanged
     return Scaffold(
-      appBar: AppBar(title: const Text("Doctor Booking"), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Doctor Info
-            Row(
-              children: [
-                const CircleAvatar(radius: 30, backgroundImage: NetworkImage('https://via.placeholder.com/150')),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Dr. Hannibel Lector", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text("10km", style: TextStyle(color: Colors.grey)),
-                    Row(
-                      children: [Icon(Icons.star, color: Colors.orange, size: 16), SizedBox(width: 4), Text("8.1")],
-                    ),
-                  ],
-                )
-              ],
-            ),
-            const SizedBox(height: 24),
 
-            // Personal Bio Section
+                const SizedBox(width: 16),
+                DoctorCard(
+                  doctorName: "Dr. Tarek Frikha",
+                  imageUrl: "assets/images/frikh-3379374-small.gif",
+                  rating: 2,
+                  distance: 100,
+                ),
+
+
+            const SizedBox(height: 24),
             const Text("Personal Bio", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             _buildTextField('Full Name', Icons.person),
@@ -68,32 +73,46 @@ class _DoctorBookingFormState extends State<DoctorBookingForm> {
             _buildTextField('Email', Icons.email),
             const SizedBox(height: 16),
             _buildTextField('Phone Number', Icons.phone, keyboardType: TextInputType.phone),
-
             const SizedBox(height: 24),
             const Text("Physical Information", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const GenderSelector(),
             const SizedBox(height: 24),
-
-            // Height & Weight Sliders
             _buildSlider('Height (cm)', height, 100, 200, (value) => setState(() => height = value)),
             const SizedBox(height: 8),
             _buildSlider('Weight (kg)', weight, 40, 150, (value) => setState(() => weight = value)),
-
             const SizedBox(height: 16),
-            const Text("Date of Birth", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Appointment Date", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(border: OutlineInputBorder(), prefixIcon: Icon(Icons.calendar_today)),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
                 child: Text(
                   selectedDate != null ? DateFormat.yMMMMd().format(selectedDate!) : "Select Date",
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
             ),
-
+            const SizedBox(height: 16),
+            const Text("Appointment Time", style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickTime,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.access_time),
+                ),
+                child: Text(
+                  selectedTime != null ? selectedTime!.format(context) : "Select Time",
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             const Text("Additional Comments", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -107,24 +126,26 @@ class _DoctorBookingFormState extends State<DoctorBookingForm> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
             const Text("Complaint Photo (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text("Please take a picture of your condition so the doctor can analyze it beforehand."),
-
-            // Photo Buttons
             const SizedBox(height: 8),
             Row(
               children: [
-                ElevatedButton.icon(icon: const Icon(Icons.camera_alt), label: const Text("Take Photo"), onPressed: () {}),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text("Take Photo"),
+                  onPressed: () {},
+                ),
                 const SizedBox(width: 16),
-                ElevatedButton.icon(icon: const Icon(Icons.upload), label: const Text("Upload"), onPressed: () {}),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.upload),
+                  label: const Text("Upload"),
+                  onPressed: () {},
+                ),
               ],
             ),
-
-            const SizedBox(height: 32),
-
           ],
         ),
       ),
@@ -153,16 +174,6 @@ class _DoctorBookingFormState extends State<DoctorBookingForm> {
           onChanged: onChanged,
         ),
       ],
-    );
-  }
-}
-
-class NextStepPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Next Step")),
-      body: const Center(child: Text("This is the next step page")),
     );
   }
 }

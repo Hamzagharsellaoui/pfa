@@ -45,6 +45,8 @@ dependencies:
   image_picker: ^1.0.4
   path_provider: ^2.1.1
   image: ^4.0.17
+  web3dart: ^2.5.2
+
 
 
 dev_dependencies:

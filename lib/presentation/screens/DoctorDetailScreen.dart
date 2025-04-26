@@ -1,33 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:web3dart/web3dart.dart';
+
 import '../../../logic/doctor_detail/doctor_detail_bloc.dart';
 import '../../../logic/doctor_detail/doctor_detail_event.dart';
 import '../../../logic/doctor_detail/doctor_detail_state.dart';
 import '../../../data/repositories/doctor_repository.dart';
+import '../../data/repositories/ConfigureContract1.dart'; // Copied from app2
+import '../../data/repositories/ConfigureContract2.dart'; // Copied from app2
+import '../../logic/booking/booking_bloc.dart';
+import '../../logic/booking_payment/booking_payment_bloc.dart';
+import '../widgets/card_widget.dart';
+import 'mastercard_payment_screen.dart';
+import 'profile_screen.dart'; // Assuming you have this or will create it
+
+// Define a Doctor class to match expected data structure
+class Doctor {
+  final String name;
+  final EthereumAddress address;
+
+  Doctor({required this.name, required this.address});
+}
 
 class DoctorDetailScreen extends StatelessWidget {
   final int doctorId;
-
-  const DoctorDetailScreen({super.key, required this.doctorId});
+  final DateTime selectedDate;
+  final TimeOfDay selectedTime;
+  const DoctorDetailScreen({
+    super.key,
+    required this.doctorId,
+    required this.selectedDate,
+    required this.selectedTime,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => DoctorDetailBloc(DoctorRepository())
-        ..add(FetchDoctorDetail(doctorId)),
-      child: Scaffold(
-        appBar: AppBar(
+    print("DoctorDetailScreen: Date = $selectedDate, Time = $selectedTime");
+    final contract = ConfigureContract.auto();
+    final tokenContract = ConfigureTokenContract.auto();
 
-          title: const Text('Doctor Booking'),
-          centerTitle: true,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<DoctorDetailBloc>(
+          create: (_) => DoctorDetailBloc(DoctorRepository())..add(FetchDoctorDetail(doctorId)),
         ),
+        BlocProvider<BookingBloc>(
+          create: (_) => BookingBloc(contract: contract),
+        ),
+        BlocProvider<BookingPaymentBloc>(
+          create: (_) => BookingPaymentBloc(tokenContract: tokenContract),
+        ),
+      ],
+      child: Scaffold(
+
         body: BlocBuilder<DoctorDetailBloc, DoctorDetailState>(
           builder: (context, state) {
             if (state is DoctorDetailLoading) {
               return const Center(child: CircularProgressIndicator());
             } else if (state is DoctorDetailLoaded) {
-              // Once doctor is loaded, show booking UI
-              return const BookingContent();
+              return BookingContent(
+                doctor: Doctor(
+                  name: state.doctor.name,
+                  address: EthereumAddress.fromHex(
+                    "0x7e01Fc8F359389f82336325d3552Ef6b36a04cf7", // Placeholder; replace with actual address
+                  ),
+                ),
+                selectedDate: selectedDate,
+                selectedTime: selectedTime,
+              );
             } else if (state is DoctorDetailError) {
               return Center(child: Text(state.message));
             }
@@ -39,9 +79,17 @@ class DoctorDetailScreen extends StatelessWidget {
   }
 }
 
-/// Booking UI integrated into DoctorDetailScreen
 class BookingContent extends StatelessWidget {
-  const BookingContent({super.key});
+  final Doctor doctor;
+  final DateTime selectedDate;
+  final TimeOfDay selectedTime;
+
+  const BookingContent({
+    super.key,
+    required this.doctor,
+    required this.selectedDate,
+    required this.selectedTime,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +98,13 @@ class BookingContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           const SizedBox(height: 20),
-          const BookingDoctorCard(),
+        DoctorCard(
+          doctorName: "Dr. Tarek Frikha",
+          imageUrl: "assets/images/frikh-3379374-small.gif",
+          rating: 2,
+          distance: 100,
+        ),
           const SizedBox(height: 20),
           const PaymentDetails(),
           const SizedBox(height: 20),
@@ -72,69 +124,198 @@ class BookingContent extends StatelessWidget {
               );
             },
           ),
-          const Spacer(),
-          Row(
-            children: [
-
-              const SizedBox(width: 10),
-
-            ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: BlocConsumer<BookingBloc, BookingState>(
+              listener: (context, state) {
+                if (state is BookingSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Booking Confirmed! Tx: ${state.txHash}"),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                  _showPaymentDialog(context, doctor, selectedDate, selectedTime);
+                } else if (state is BookingError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Booking Failed: ${state.error}"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              builder: (context, state) {
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6A1B9A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: state is BookingLoading
+                      ? null
+                      : () {
+                    final timestamp = _getTimestampInSeconds(selectedDate, selectedTime);
+                    if (timestamp != null) {
+                      context.read<BookingBloc>().add(
+                        ConfirmBooking(
+                          doctorAddress: doctor.address,
+                          timestamp: timestamp,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please select a future date and time.")),
+                      );
+                    }
+                  },
+                  child: state is BookingLoading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : const Text(
+                    'BOOK',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          BlocConsumer<BookingPaymentBloc, BookingPaymentState>(
+            listener: (context, state) {
+              if (state is BookingPaymentSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Payment Successful! Tx: ${state.txHash}"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Future.delayed(const Duration(seconds: 2), () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfileScreen()),
+                  );
+                });
+              } else if (state is BookingPaymentError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Payment Failed: ${state.error}"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state is BookingPaymentError) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Text(
+                    "Payment Status: ${state.error}",
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ),
     );
   }
-}
 
-/// Widgets for the booking UI
-class StepIndicator extends StatelessWidget {
-  const StepIndicator({super.key, required this.label, this.isCompleted = false});
-
-  final String label;
-  final bool isCompleted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 12,
-          backgroundColor: isCompleted ? Color(0xFF6A1B9A) : Colors.grey.shade300,
-          child: Icon(
-            isCompleted ? Icons.check : Icons.circle,
-            color: Colors.white,
-            size: 16,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: isCompleted ? Colors.black : Colors.grey.shade600,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+  BigInt? _getTimestampInSeconds(DateTime selectedDate, TimeOfDay selectedTime) {
+    final DateTime combined = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
     );
+    if (combined.isBefore(DateTime.now())) {
+      return null;
+    }
+    return BigInt.from(combined.millisecondsSinceEpoch ~/ 1000);
   }
-}
 
-class StepLine extends StatelessWidget {
-  const StepLine({super.key});
+  void _showPaymentDialog(
+      BuildContext context,
+      Doctor doctor,
+      DateTime selectedDate,
+      TimeOfDay selectedTime,
+      ) {
+    final bookingPaymentBloc = context.read<BookingPaymentBloc>();
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 2,
-      width: 60,
-      color: Colors.grey.shade300,
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return BlocProvider.value(
+          value: bookingPaymentBloc,
+          child: AlertDialog(
+            title: const Text("Consultation Booked"),
+            content: Text(
+              "Your consultation is booked. Would you like to pay the ${BookingPaymentBloc.consultationPaymentAmount} MTK fee now?",
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text("Pay Later"),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+              ),
+              BlocBuilder<BookingPaymentBloc, BookingPaymentState>(
+                builder: (blocContext, paymentState) {
+                  return ElevatedButton(
+                    child: paymentState is BookingPaymentLoading
+                        ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                        : const Text("Pay Now"),
+                    onPressed: paymentState is BookingPaymentLoading
+                        ? null
+                        : () {
+                      // dispatch before closing dialog
+                      blocContext.read<BookingPaymentBloc>().add(
+                        PayNow(
+                          doctorAddress: doctor.address,
+                          amount: BookingPaymentBloc.consultationPaymentAmount,
+                        ),
+                      );
+                      Navigator.of(dialogContext).pop();
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 class BookingDoctorCard extends StatelessWidget {
-  const BookingDoctorCard({super.key});
+  final Doctor doctor;
+
+  const BookingDoctorCard({super.key, required this.doctor});
 
   @override
   Widget build(BuildContext context) {
@@ -163,14 +344,14 @@ class BookingDoctorCard extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'Dr. Hannibal Lector',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  doctor.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Row(
-                  children: [
+                  children: const [
                     Icon(Icons.location_on, size: 14, color: Colors.grey),
                     SizedBox(width: 4),
                     Text('50m', style: TextStyle(color: Colors.grey)),
@@ -199,56 +380,15 @@ class BookingDoctorCard extends StatelessWidget {
   }
 }
 
+// Placeholder widgets to resolve undefined class errors
 class PaymentDetails extends StatelessWidget {
   const PaymentDetails({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Payment Detail', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('1x Consultation Package (30min)'),
-              Text('\$250.00'),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Admin Fee'),
-              Text('\$44.00'),
-            ],
-          ),
-          const Divider(thickness: 1),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Grand Total', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('\$87.52', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
+    return const Text(
+      "Payment Details Placeholder",
+      style: TextStyle(fontSize: 16),
     );
   }
 }
@@ -260,26 +400,10 @@ class PaymentMethodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ListTile(
+      title: const Text("Select Payment Method"),
+      trailing: const Icon(Icons.arrow_forward),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Payment Method',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue),
-            ),
-            const Icon(Icons.keyboard_arrow_down),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -332,7 +456,14 @@ class _PaymentModalState extends State<PaymentModal> {
 
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context, selectedMethod); // optionally return the selected method
+              Navigator.pop(context); // Close the modal
+              if (selectedMethod == 'Master Card') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MasterCardPaymentScreen()),
+                );
+              }
+              // You can handle Metamask or others here too if needed
             },
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),

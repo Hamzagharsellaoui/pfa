@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'DoctorDetailScreen.dart';
 import 'doctor_booking_form.dart';
 
@@ -10,12 +9,20 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   int currentStep = 0;
+  DateTime? selectedDate; // Store selected date
+  TimeOfDay? selectedTime; // Store selected time
 
   void goToNextStep() {
-    if (currentStep < 1) { // only allow step 0 -> step 1
-      setState(() {
-        currentStep++;
-      });
+    if (currentStep < 1) {
+      if (selectedDate != null && selectedTime != null) { // Validate before proceeding
+        setState(() {
+          currentStep++;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select both date and time')),
+        );
+      }
     }
   }
 
@@ -30,12 +37,29 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget getStepContent() {
     switch (currentStep) {
       case 0:
-        return DoctorBookingForm(); // Patient Details
+        return DoctorBookingForm(
+          onDateSelected: (date) {
+            setState(() {
+              selectedDate = date;
+              print("BookingScreen: Selected Date = $date"); // Debug
+            });
+          },
+          onTimeSelected: (time) {
+            setState(() {
+              selectedTime = time;
+              print("BookingScreen: Selected Time = $time"); // Debug
+            });
+          },
+        ); // Patient Details
       case 1:
-        return DoctorDetailScreen(doctorId: 123); // Payment
+        return DoctorDetailScreen(
+          doctorId: 123, // Replace with actual doctor ID in a real app
+          selectedDate: selectedDate!,
+          selectedTime: selectedTime!,
+        ); // Payment
       default:
-        return SizedBox.shrink();
-          }
+        return const SizedBox.shrink();
+    }
   }
 
   @override
@@ -43,13 +67,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Booking"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Pop until we get back to the root (main scaffold) screen
-            Navigator.popUntil(context, ModalRoute.withName('/'));
-          },
-        ),
+
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -57,7 +75,7 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             BookingStepper(currentStep: currentStep),
             const SizedBox(height: 30),
-            Expanded(child: getStepContent()), // step widget here
+            Expanded(child: getStepContent()),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -86,12 +104,12 @@ class _BookingScreenState extends State<BookingScreen> {
 class BookingStepper extends StatelessWidget {
   final int currentStep;
 
-  BookingStepper({required this.currentStep});
+  const BookingStepper({required this.currentStep});
 
   @override
   Widget build(BuildContext context) {
-    List<String> titles = ['Patient Details', 'Payment']; // ✅ NEW
-    List<IconData> icons = [Icons.person, Icons.payment]; // ✅ NEW
+    List<String> titles = ['Patient Details', 'Payment'];
+    List<IconData> icons = [Icons.person, Icons.payment];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -104,14 +122,14 @@ class BookingStepper extends StatelessWidget {
               color: isActive ? Colors.blue : Colors.grey,
               size: isActive ? 30 : 24,
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               titles[index],
               style: TextStyle(
                 color: isActive ? Colors.blue : Colors.grey,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
-            )
+            ),
           ],
         );
       }),

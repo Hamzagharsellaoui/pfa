@@ -140,25 +140,108 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: ListView(
           children: [
+            // 🔍 Search Bar
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search for dentists, services...',
+                prefixIcon: Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 🚀 Categories
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _buildCategoryItem(Icons.medical_services, "Dentists"),
+                  _buildCategoryItem(Icons.check_circle, "Checkups"),
+                  _buildCategoryItem(Icons.airport_shuttle, "Orthodontics"),
+                  _buildCategoryItem(Icons.child_care, "Pediatrics"),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 🎁 Promotional Banner
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: mainColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.local_offer, color: mainColor),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Get 20% off your first consultation!",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 🩺 Available Doctors (your existing cards)
             DoctorCard(
-              doctorName: "Dr. Tarek Frikha",
-              imageUrl: "assets/images/frikh-3379374-small.gif",
+              doctorName: "Dr. Alexander Reed",
+              imageUrl: "assets/images/alexander.webp",
               rating: 2,
               distance: 100,
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => BookingScreen()   , // Example ID
-                  ),
+                  MaterialPageRoute(builder: (context) => BookingScreen()),
                 );
               },
             ),
             const SizedBox(height: 16),
+            DoctorCard(
+              doctorName: "Dr. Emily Carter",
+              imageUrl: "assets/images/Emily-Carter.jpeg",
+              rating: 4,
+              distance: 700,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => BookingScreen()),
+                );
+              },
+            ),
 
+            const SizedBox(height: 30),
+
+            // 📚 Articles Section
+            Text(
+              "Health Tips",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              leading: Icon(Icons.info_outline, color: mainColor),
+              title: Text("5 Signs You Should Visit Your Dentist Today"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: Icon(Icons.info_outline, color: mainColor),
+              title: Text("How to Brush Your Teeth Properly"),
+              onTap: () {},
+            ),
           ],
         ),
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: mainColor,
         child: const Icon(Icons.camera, color: Colors.white),
@@ -311,4 +394,21 @@ Future<void> _pickAndAnalyzeImage(BuildContext context) async {
       SnackBar(content: Text("Error: ${e.toString().replaceAll('Exception: ', '')}")),
     );
   }
+
+}
+Widget _buildCategoryItem(IconData icon, String label) {
+  return Padding(
+    padding: const EdgeInsets.only(right: 16),
+    child: Column(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Color(0xFF7C3AED).withOpacity(0.1),
+          child: Icon(icon, color: Color(0xFF7C3AED)),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: TextStyle(fontSize: 13)),
+      ],
+    ),
+  );
 }

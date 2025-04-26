@@ -1,3 +1,4 @@
+
 part of 'booking_bloc.dart';
 
 abstract class BookingState {}

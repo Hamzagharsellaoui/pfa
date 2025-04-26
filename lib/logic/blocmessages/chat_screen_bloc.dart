@@ -12,6 +12,7 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
   final String chatId;
   final String currentUserId;
   StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<String>? _errorSubscription;
   bool _isWebSocketInitialized = false;
 
   ChatScreenBloc({
@@ -23,9 +24,6 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     on<LoadMessagesEvent>(_onLoadMessages);
     on<SendMessageEvent>(_onSendMessage);
     on<NewIncomingMessageEvent>(_onNewIncomingMessage);
-    webSocketRepository.messageStream.listen((message) {
-      add(NewIncomingMessageEvent(message));
-    });
     _initializeWebSocketOnce();
 
     add(LoadMessagesEvent(chatId));
@@ -41,6 +39,10 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
       }
     });
 
+    _errorSubscription = webSocketRepository.errorStream.listen((error) {
+      emit(MessageSendFailedState(error));
+    });
+
     webSocketRepository.connect(
       userId: currentUserId,
       onMessage: (message) {
@@ -54,7 +56,9 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     const maxReconnectAttempts = 5;
 
     webSocketRepository.connectionStream.listen((isConnected) {
-      if (!isConnected && reconnectAttempts < maxReconnectAttempts) {
+      if (isConnected) {
+        reconnectAttempts = 0; // Reset on successful connection
+      } else if (reconnectAttempts < maxReconnectAttempts) {
         reconnectAttempts++;
         Future.delayed(Duration(seconds: 2 * reconnectAttempts), () {
           webSocketRepository.connect(
@@ -70,7 +74,7 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     });
   }
 
-  Future<void> _onLoadMessages(LoadMessagesEvent event, Emitter<ChatScreenState> emit,) async {
+  Future<void> _onLoadMessages(LoadMessagesEvent event, Emitter<ChatScreenState> emit) async {
     emit(MessagesLoadingState());
     try {
       final messages = await chatRepository.fetchMessages(chatId);
@@ -85,8 +89,8 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
       webSocketRepository.sendMessage(
         content: event.message.content,
         chatId: chatId,
-        senderId: currentUserId,
-        receiverId: await chatRepository.getParticipants(event.message.chatId).then((value) => value[0]),
+        senderId: await chatRepository.getParticipants(event.message.chatId).then((value) => value[0]),
+        receiverId: currentUserId
       );
 
       if (state is MessagesLoadedState) {
@@ -98,6 +102,7 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
       emit(MessageSendFailedState('Failed to send message: ${e.toString()}'));
     }
   }
+
   void _onNewIncomingMessage(NewIncomingMessageEvent event, Emitter<ChatScreenState> emit) {
     print('🔄 BLoC received new message event: '
         'ID: ${event.message.chatId} '
@@ -120,6 +125,7 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
   @override
   Future<void> close() async {
     await _messageSubscription?.cancel();
+    await _errorSubscription?.cancel();
     return super.close();
   }
 }

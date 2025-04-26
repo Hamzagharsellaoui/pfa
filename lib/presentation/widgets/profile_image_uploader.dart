@@ -45,7 +45,7 @@ class _ProfileImageUploaderState extends State<ProfileImageUploader> {
       }
 
       // 2. Create request
-      final uri = Uri.parse("http://192.168.0.153:8081/api/users/${widget.userId}/upload-profile-image");
+      final uri = Uri.parse("http://192.168.0.144:8081/api/users/${widget.userId}/upload-profile-image");
       final request = http.MultipartRequest('POST', uri);
 
       request.files.add(

@@ -36,10 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minHeight: MediaQuery
-                .of(context)
-                .size
-                .height,
+            minHeight: MediaQuery.of(context).size.height,
           ),
           child: Column(
             children: [
@@ -59,9 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: SizedBox(
                         width: 250,
                         height: 200,
-                        child: Lottie.asset(
-                          'assets/register_animation.json',
-                        ),
+                        child: Lottie.asset('assets/register_animation.json'),
                       ),
                     ),
                   ],
@@ -87,11 +82,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _firstNameController,
                             hintText: 'First Name',
                             prefixIcon: Icon(
-                                Icons.person, color: Color(0xFF7C3AED)),
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? 'Please enter first name'
-                                : null,
+                              Icons.person,
+                              color: Color(0xFF7C3AED),
+                            ),
+                            validator:
+                                (value) =>
+                                    value!.isEmpty
+                                        ? 'Please enter first name'
+                                        : null,
                             onChanged: (value) {},
                             keyboardType: TextInputType.name,
                           ),
@@ -102,11 +100,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _lastNameController,
                             hintText: 'Last Name',
                             prefixIcon: Icon(
-                                Icons.person_outline, color: Color(0xFF7C3AED)),
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? 'Please enter last name'
-                                : null,
+                              Icons.person_outline,
+                              color: Color(0xFF7C3AED),
+                            ),
+                            validator:
+                                (value) =>
+                                    value!.isEmpty
+                                        ? 'Please enter last name'
+                                        : null,
                             onChanged: (value) {},
                             keyboardType: TextInputType.name,
                           ),
@@ -118,11 +119,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: 'Email',
                             keyboardType: TextInputType.emailAddress,
                             prefixIcon: Icon(
-                                Icons.email, color: Color(0xFF7C3AED)),
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? 'Please enter email'
-                                : null,
+                              Icons.email,
+                              color: Color(0xFF7C3AED),
+                            ),
+                            validator:
+                                (value) =>
+                                    value!.isEmpty
+                                        ? 'Please enter email'
+                                        : null,
                             onChanged: (value) {},
                           ),
                           SizedBox(height: 20),
@@ -133,11 +137,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hintText: 'Password',
                             obscureText: true,
                             prefixIcon: Icon(
-                                Icons.lock, color: Color(0xFF7C3AED)),
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? 'Please enter password'
-                                : null,
+                              Icons.lock,
+                              color: Color(0xFF7C3AED),
+                            ),
+                            validator:
+                                (value) =>
+                                    value!.isEmpty
+                                        ? 'Please enter password'
+                                        : null,
                             onChanged: (value) {},
                             keyboardType: TextInputType.text,
                           ),
@@ -148,8 +155,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             value: _selectedRole,
                             decoration: InputDecoration(
                               labelText: 'Role',
-                              prefixIcon: Icon(Icons.medical_services,
-                                  color: Color(0xFF7C3AED)),
+                              prefixIcon: Icon(
+                                Icons.medical_services,
+                                color: Color(0xFF7C3AED),
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -157,21 +166,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               filled: true,
                               fillColor: Colors.grey[100],
                             ),
-                            items: ['Patient', 'Doctor'].map((String role) {
-                              return DropdownMenuItem<String>(
-                                value: role,
-                                child: Text(role),
-                              );
-                            }).toList(),
+                            items:
+                                ['Patient', 'Doctor'].map((String role) {
+                                  return DropdownMenuItem<String>(
+                                    value: role,
+                                    child: Text(role),
+                                  );
+                                }).toList(),
                             onChanged: (value) {
                               setState(() {
                                 _selectedRole = value!;
                               });
                             },
-                            validator: (value) =>
-                            value == null
-                                ? 'Please select role'
-                                : null,
+                            validator:
+                                (value) =>
+                                    value == null ? 'Please select role' : null,
                           ),
                           SizedBox(height: 30),
 
@@ -195,16 +204,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildRegisterButton(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () {
-        authRepository.register(
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          authRepository.register(
             firstName: _firstNameController.text,
-            lastName  : _lastNameController.text,
+            lastName: _lastNameController.text,
             email: _emailController.text,
             password: _passwordController.text,
-            role: _selectedRole);
-        Navigator.pushNamed(context, AppRoutes.login);
-      }, child: Text('REGISTER'),
+            role: _selectedRole,
+          );
+          Navigator.pushNamed(context, AppRoutes.login);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFF7C3AED),
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          'Register',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 

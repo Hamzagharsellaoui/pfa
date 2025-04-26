@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pfa_flutter/chat/models/message_model.dart';
 import 'package:pfa_flutter/logic/blocmessages/chat_screen_bloc.dart';
+import 'package:pfa_flutter/logic/blocmessages/chat_screen_event.dart';
 import 'package:pfa_flutter/logic/blocmessages/chat_screen_state.dart';
-import 'package:pfa_flutter/presentation/screens/video_call_screen.dart';
-import '../../chat/repository/chat_repository.dart';
-import '../../chat/websocket/web_socket_repository.dart';
-import '../../logic/blocmessages/MessageBubble.dart';
-import '../../logic/blocmessages/chat_screen_event.dart';
 
 class ChatScreen extends StatefulWidget {
   final String currentUserId;
@@ -30,12 +26,10 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
-  late WebSocketRepository _webSocketRepo;
 
   @override
   void initState() {
     super.initState();
-    _webSocketRepo = RepositoryProvider.of<WebSocketRepository>(context);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -58,45 +52,56 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const mainColor = Color(0xFF7C3AED);
+
     return BlocProvider(
-      create:
-          (context) => ChatScreenBloc(
-            chatRepository: RepositoryProvider.of<ChatRepository>(context),
-            webSocketRepository: _webSocketRepo,
-            chatId: widget.chatId,
-            currentUserId: widget.currentUserId,
-          )..add(LoadMessagesEvent(widget.chatId)),
+      create: (context) => ChatScreenBloc(
+        chatRepository: RepositoryProvider.of(context),
+        webSocketRepository: RepositoryProvider.of(context),
+        chatId: widget.chatId,
+        currentUserId: widget.currentUserId,
+      )..add(LoadMessagesEvent(widget.chatId)),
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: mainColor,
           foregroundColor: Colors.white,
           title: Row(
             children: [
               const CircleAvatar(
-                radius: 15,
+                radius: 18, // Slightly larger profile picture
                 backgroundImage: AssetImage(
-                  "assets/images/frikh-3379374-small.gif",
+                  "assets/images/frikh-3379374-small.gif", // Replace with actual receiver profile image
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                widget.receiverName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.receiverName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 17,
+                    ),
+                  ),
+                  // Optional: Add online status
+                  // const Text(
+                  //   "Online",
+                  //   style: TextStyle(fontSize: 12, color: Colors.white70),
+                  // ),
+                ],
               ),
             ],
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.call, color: Colors.white),
-              onPressed:(){}),
+              onPressed: () {},
+            ),
             IconButton(
               icon: const Icon(Icons.videocam, color: Colors.white),
-              onPressed: () {}
-                // => _initiateVideoCall(context),
+              onPressed: () {}, // Implement video call functionality
             ),
           ],
         ),
@@ -111,20 +116,18 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
                 builder: (context, state) {
                   if (state is MessagesLoadingState) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(color: mainColor));
                   }
 
                   if (state is MessagesLoadedState) {
                     return ListView.builder(
                       controller: _scrollController,
                       itemCount: state.messages.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
                       itemBuilder: (context, index) {
                         final message = state.messages[index];
-                        return MessageBubble(
-                          message: message,
-                          isMe: message.senderId == widget.currentUserId,
-                          chatId: widget.chatId,
-                        );
+                        final isMe = message.senderId == widget.currentUserId;
+                        return _buildMessageBubble(message, isMe);
                       },
                     );
                   }
@@ -137,14 +140,48 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
               ),
             ),
-            _buildMessageInput(context),
+            _buildMessageInput(context, mainColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMessageInput(BuildContext context) {
+  Widget _buildMessageBubble(Message message, bool isMe) {
+    const senderColor = Colors.deepPurpleAccent;
+    final receiverColor = Colors.grey[300]!;
+    final textColor = Colors.black87;
+    final myTextColor = Colors.white;
+
+    return Align(
+      alignment: isMe ? Alignment.topRight : Alignment.topLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: isMe ? senderColor : receiverColor,
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.content,
+              style: TextStyle(color: isMe ? myTextColor : textColor),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              // Format the timestamp as needed (e.g., "h:mm a")
+              "${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')}",
+              style: TextStyle(fontSize: 10.0, color: isMe ? myTextColor.withOpacity(0.7) : textColor.withOpacity(0.7)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageInput(BuildContext context, Color mainColor) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Row(
@@ -155,15 +192,24 @@ class _ChatScreenState extends State<ChatScreen> {
               decoration: InputDecoration(
                 hintText: 'Type a message...',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(25.0),
+                  borderSide: BorderSide.none,
                 ),
+                filled: true,
+                fillColor: Colors.grey[200],
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
               ),
               onSubmitted: (_) => _sendMessage(context),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: () => _sendMessage(context),
+          const SizedBox(width: 8.0),
+          CircleAvatar(
+            backgroundColor: mainColor,
+            radius: 24.0,
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
+              onPressed: () => _sendMessage(context),
+            ),
           ),
         ],
       ),
@@ -181,36 +227,8 @@ class _ChatScreenState extends State<ChatScreen> {
         messageType: MessageType.TEXT,
         createdAt: DateTime.now(),
       );
-
       context.read<ChatScreenBloc>().add(SendMessageEvent(message));
       _messageController.clear();
     }
   }
-  // void _initiateVideoCall(BuildContext context) {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => VideoCallScreen(
-  //         currentUserId: widget.currentUserId,
-  //         receiverId: widget.receiverId,
-  //         receiverName: widget.receiverName,
-  //         isCaller: true,
-  //       ),
-  //     ),
-  //   );
-  // }
-  // void _initiateVoiceCall(BuildContext context) {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => VideoCallScreen(
-  //         currentUserId: widget.currentUserId,
-  //         receiverId: widget.receiverId,
-  //         receiverName: widget.receiverName,
-  //         isCaller: true,
-  //       ),
-  //     ),
-  //   );
-  // }
 }
-

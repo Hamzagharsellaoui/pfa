@@ -4,13 +4,13 @@ import 'package:http/http.dart' as http;
 import '../models/base_response_model.dart';
 
 class AuthRepository {
-  final url = Uri.parse('http://192.168.0.119:8081/Auth/login');
+  final url = Uri.parse('http://192.168.1.25:8081/Auth/login');
   final http.Client client;
 
   AuthRepository({http.Client? client}) : client = client ?? http.Client();
 
   Future<BaseResponseModel<String>> login(String email, String password) async {
-    final url = Uri.parse('http://192.168.0.119:8081/Auth/login');
+    final url = Uri.parse('http://192.168.1.25:8081/Auth/login');
     final headers = {'Content-Type': 'application/json'};
     final body = jsonEncode({'email': email, 'password': password});
 
@@ -61,7 +61,7 @@ class AuthRepository {
     required String password,
     required String role,
   }) async {
-    final url = Uri.parse('http://192.168.0.119:8081/Auth/Register');
+    final url = Uri.parse('http://192.168.1.25:8081/Auth/Register');
     final headers = {'Content-Type': 'application/json'};
     final body = jsonEncode({
       'firstName': firstName,

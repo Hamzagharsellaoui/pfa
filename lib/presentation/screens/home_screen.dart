@@ -5,9 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pfa_flutter/presentation/widgets/card_widget.dart';
-import '../../data/tooth_decay_detector.dart';
+import '../../data/repositories/tooth_decay_detector.dart';
 import '../../logic/auth/auth_bloc.dart';
 import '../../logic/auth/auth_event.dart';
+import 'booking_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,8 +16,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentDate = DateFormat.yMMMEd().format(DateTime.now());
-
-    const mainColor = Color(0xFF7C3AED);
+    const
+    mainColor = Color(0xFF7C3AED);
     const backgroundColor = Color(0xFFF4F4F7);
 
     return Scaffold(
@@ -47,7 +48,7 @@ class HomeScreen extends StatelessWidget {
                       const CircleAvatar(
                         radius: 26,
                         backgroundImage: AssetImage(
-                          "assets/images/20241020_180030.jpg",
+                          "",
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -140,17 +141,19 @@ class HomeScreen extends StatelessWidget {
           children: [
             DoctorCard(
               doctorName: "Dr. Tarek Frikha",
-              imageUrl: "assets/images/frikh-3379374-small.gif",
+              imageUrl: "D://IdeaProjects//SpringPfa//uploads//users//8bb5d377-9f22-43ba-b1bc-fb413420451b//1745598829352",
               rating: 2,
               distance: 100,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BookingScreen(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
-            DoctorCard(
-              doctorName: "Dr. Tarek Frikha",
-              imageUrl: "assets/images/frikh-3379374-small.gif",
-              rating: 2,
-              distance: 100,
-            ),
           ],
         ),
       ),
@@ -248,6 +251,9 @@ Future<void> _pickAndAnalyzeImage(BuildContext context) async {
 
   if (pickedFile == null) return;
 
+  // Store the File object to display the image later
+  final imageFile = File(pickedFile.path);
+
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -270,7 +276,7 @@ Future<void> _pickAndAnalyzeImage(BuildContext context) async {
   );
 
   try {
-    final result = await GeminiService.analyzeToothImage(File(pickedFile.path));
+    final result = await GeminiService.analyzeToothImage(imageFile);
     Navigator.pop(context); // Close loading dialog
 
     if (result == null) {
@@ -281,16 +287,55 @@ Future<void> _pickAndAnalyzeImage(BuildContext context) async {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Diagnosis Result"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Decay Percentage: ${result['decay_percentage'] ?? 'N/A'}"),
-            const SizedBox(height: 8),
-            Text("Recommendation: ${result['see_dentist'] ?? 'N/A'}"),
-            const SizedBox(height: 8),
-            Text("Explanation: ${result['explanation'] ?? 'No explanation'}"),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Display the picked image
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    imageFile,
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 150,
+                        height: 150,
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Diagnosis results
+              Text(
+                "Decay Percentage: ${result['decay_percentage'] ?? 'N/A'}",
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Recommendation: ${result['see_dentist'] ?? 'N/A'}",
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Explanation: ${result['explanation'] ?? 'No explanation'}",
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

@@ -13,7 +13,7 @@ class Message {
     required this.content,
     required this.senderId,
     required this.createdAt,
-    this.messageState = MessageState.sent, // Default value
+    this.messageState = MessageState.SENT,
     required this.receiverId, required this.messageType
   });
 
@@ -40,10 +40,11 @@ class Message {
       'receiverId': receiverId,
       'messageType': messageType.toString().split('.').last,
       'chatId':chatId
+
     };
   }
 }
 
-enum MessageType { text, image, file, TEXT }
+enum MessageType { IMAGE, FILE, TEXT }
 
-enum MessageState { sent, seen }
+enum MessageState { SENT, SEEN }

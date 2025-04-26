@@ -6,7 +6,7 @@ import '../screens/contacts_chat_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/search_screen.dart';
-import '../widgets/navbar_widget.dart'; // Add this import
+import '../widgets/navbar_widget.dart';
 
 class PatientMainScaffold extends StatelessWidget {
   final List<Widget> _screens;

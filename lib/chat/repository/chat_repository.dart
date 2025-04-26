@@ -7,7 +7,7 @@ import '../models/ChatModel.dart';
 import '../models/message_model.dart';
 
 class ChatRepository {
-  final baseUrl = 'http://192.168.0.119:8081/api/v1/chats';
+  final baseUrl = 'http://192.168.1.25:8081/api/v1/chats';
 
   Future<List<ChatModel>> getUserChats() async {
     final token = await AuthBloc.getToken();
@@ -62,7 +62,7 @@ class ChatRepository {
   Future<List<Message>> fetchMessages(String chatId) async {
     final token = await AuthBloc.getToken();
     final response = await http.get(
-      Uri.parse('http://192.168.0.119:8081/api/v1/messages/chat/$chatId'),
+      Uri.parse('http://192.168.1.25:8081/api/v1/messages/chat/$chatId'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

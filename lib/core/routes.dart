@@ -105,6 +105,7 @@ class AppRoutes {
               ? DoctorMainScaffold()
               : PatientMainScaffold(),
         );
+
       case doctorPrescription:
         // return MaterialPageRoute(builder: (_) => PrescriptionScreen());
       case doctorRecords:

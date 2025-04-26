@@ -9,6 +9,7 @@ import '../repository/chat_repository.dart';
 class WebSocketRepository {
   final _messageStreamController = StreamController<Message>.broadcast();
   final _connectionStreamController = StreamController<bool>.broadcast();
+  final _errorStreamController = StreamController<String>.broadcast();
   final _connectionCompleter = Completer<void>();
 
   late StompClient _client;
@@ -21,6 +22,7 @@ class WebSocketRepository {
   // Public streams
   Stream<Message> get messageStream => _messageStreamController.stream;
   Stream<bool> get connectionStream => _connectionStreamController.stream;
+  Stream<String> get errorStream => _errorStreamController.stream;
 
   /// Connects to the WebSocket server and subscribes to messages
   Future<void> connect({
@@ -50,6 +52,7 @@ class WebSocketRepository {
     required String senderId,
     required String receiverId,
   }) async {
+    log('Sending message: senderId=$senderId, receiverId=$receiverId, chatId=$chatId, content=$content');
     if (!_isConnected) {
       log('⚠️ Cannot send message - not connected to WebSocket');
       return;
@@ -68,9 +71,12 @@ class WebSocketRepository {
       _client.send(
         destination: '/app/chat.send',
         body: jsonEncode(message.toJson()),
-        headers: {'content-type': 'application/json'},
+        headers: {
+          'content-type': 'application/json',
+          'Authorization': 'Bearer ${await _getAuthToken()}',
+        },
       );
-      log('📤 Sent message to /app/chat.send');
+      log('📤 Sent message to /app/chat.send with senderId: $senderId');
     } catch (e) {
       log('❌ Failed to send message: $e');
     }
@@ -94,6 +100,7 @@ class WebSocketRepository {
     await disconnect();
     await _messageStreamController.close();
     await _connectionStreamController.close();
+    await _errorStreamController.close();
     _connectionCompleter.complete();
   }
 
@@ -122,15 +129,18 @@ class WebSocketRepository {
   void _initializeClient(String token) {
     _client = StompClient(
       config: StompConfig(
-        url: 'ws://192.168.0.119:8081/websocket',
+        url: 'ws://192.168.1.25:8081/websocket',
         stompConnectHeaders: {
-          'Authorization': 'Bearer $token', // Add JWT to CONNECT frame
-          'heart-beat': '10000,10000' // Optional heartbeats
-        }, webSocketConnectHeaders: {
-      'Authorization': 'Bearer $token',
-      },
-      onConnect: (frame) {
-          _subscribeToMessages();
+          'Authorization': 'Bearer $token',
+          'heart-beat': '10000,10000',
+        },
+        webSocketConnectHeaders: {
+          'Authorization': 'Bearer $token',
+        },
+        onConnect: (frame) async {
+          log('Connected to WebSocket with session: ${frame.headers['session']}');
+          await _subscribeToMessages();
+          _handleSuccessfulConnection(frame);
         },
         beforeConnect: () async {
           log('⏳ Connecting to WebSocket...');
@@ -160,34 +170,52 @@ class WebSocketRepository {
     _isConnecting = false;
     _updateConnectionState(true);
     log('✅ WebSocket connected!');
-
     _connectionCompleter.complete();
-    _subscribeToMessages();
   }
 
-  Future<void> _subscribeToMessages() async {
-    final destination = '/user/$_currentUserId/queue/messages';
+    Future<void> _subscribeToMessages() async {
+      final destination = '/user/$_currentUserId/queue/messages';
+      final errorDestination = '/user/$_currentUserId/queue/errors';
+      Completer<void> subscriptionCompleter = Completer();
+      _client.subscribe(
+        destination: destination,
+        headers: {'id': 'sub-$_currentUserId'},
+        callback: (frame) {
+          if (frame.body != null) {
+            _handleIncomingMessage(frame.body!);
+          }
+        },
+      );
+      _client.subscribe(
+        destination: errorDestination,
+        headers: {'id': 'sub-errors-$_currentUserId'},
+        callback: (frame) {
+          if (frame.body != null) {
+            log('❌ Error received: ${frame.body}');
+            _errorStreamController.add(frame.body!);
+          }
+        },
+      );
+      log('Subscribed to $destination and $errorDestination');
+      // Simulate subscription confirmation
+      Future.delayed(Duration(milliseconds: 500), () {
+        subscriptionCompleter.complete();
+      });
+      return subscriptionCompleter.future;
+    }
 
-    _client.subscribe(
-      destination: destination,
-      headers: {'id': 'sub-$_currentUserId'},
-      callback: (frame) {
-        if (frame.body != null) {
-          _handleIncomingMessage(frame.body!);
-        }
-      },
-    );
-  }  void _handleIncomingMessage(String messageBody) {
+  void _handleIncomingMessage(String messageBody) {
+    log('Raw message received: $messageBody');
     try {
       final data = jsonDecode(messageBody);
+      log('Parsed JSON: $data');
       final message = Message.fromJson(data);
       _messageStreamController.add(message);
-      log('📩 New message received: ${message.content}');
-    } catch (e) {
-      log('❌ Failed to decode message: $e');
+      log('📩 New message received: ${message.content}, senderId: ${message.senderId}, chatId: ${message.chatId}');
+    } catch (e, stackTrace) {
+      log('❌ Failed to decode message: $e\n$stackTrace');
     }
   }
-
   void _handleConnectionError() {
     _isConnected = false;
     _isConnecting = false;

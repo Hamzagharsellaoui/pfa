@@ -114,7 +114,7 @@ import 'package:pfa_flutter/presentation/screens/doctor/doctor_scaffold_widget.d
             );
           }
           if (state is AuthLoading) return _LoadingScreen();
-          return PatientMainScaffold();
+          return LoginScreen();
         },
       );
     }
